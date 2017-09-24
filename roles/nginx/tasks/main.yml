@@ -1,0 +1,21 @@
+# Nginx role to configure nginx on host.
+---
+- name: Install Nginx Package
+  yum:
+    name: nginx
+    state: latest
+- name: Create SSL directory 
+  file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: 0755
+- name: Copy Jenkins.conf
+  template:
+    src: jenkins.conf.j2
+    dest: /etc/nginx/conf.d/jenkins.conf
+    mode: 0644
+- name: Start nginx Service
+  service:
+    name: nginx
+    state: started
+

@@ -1,0 +1,5 @@
+[jenkins]
+name=Jenkins Repo
+baseurl=http:/path/qjenkins
+enabled=1
+gpgcheck=0

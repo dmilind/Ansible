@@ -1,0 +1,18 @@
+# Role to install common packages
+---
+- name: Install libselinux-python
+  yum:
+    name: libselinux-python
+    state: installed
+- name: Install JRE
+  yum:
+    name: jre
+    state:  installed
+- name: Install ansible
+  yum:
+    name: ansible
+    state: installed
+- name: Install Git
+  yum:
+    name: git
+    state: installed

@@ -1,0 +1,43 @@
+###########################################################
+## this configuration is for Jenkins ##
+###########################################################
+
+upstream jenkins {
+  server {{ fqdn }}:50713 fail_timeout=0;
+}
+
+server {
+    listen 80;
+    server_name {{ fqdn }};
+    return 301 https://$host$request_uri;
+}
+
+## server configuration
+server {
+    listen 443 ssl;
+    server_name {{ fqdn }};
+
+    ## add ssl entries when https has been set in config
+    ssl_certificate      /etc/nginx/ssl/{{ domain }}.pem;
+    ssl_certificate_key  /etc/nginx/ssl/{{ domain }}.key;
+    # ssl_certificate      /etc/nginx/ssl/ssl-cert.pem;
+    # ssl_certificate_key  /etc/nginx/ssl/ssl-cert.key;
+    #ssl on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_prefer_server_ciphers   on;
+
+    ## Application specific logs
+    ## access_log            /var/log/nginx/jenkins.access.log;
+
+    location / {
+      proxy_set_header        Host $host;
+      proxy_set_header        X-Real-IP $remote_addr;
+      proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header        X-Forwarded-Proto $scheme;
+
+      # Fix the “It appears that your reverse proxy set up is broken" error.
+      proxy_pass          http://localhost:50713;
+      proxy_read_timeout  90;
+
+    }
+}
