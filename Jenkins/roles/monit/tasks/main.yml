@@ -1,0 +1,47 @@
+# Role for configuring monit and monitoring processes.
+  - name: Place Monitrc | For Host Level Access
+    template:
+      src: monitrc.j2
+      dest: /etc/monitrc
+      owner: root
+      group: root
+      mode: 0600
+    notify: Monit Reload
+
+  - name: Start Service | Monit
+    service:
+      name: monit
+      state: started
+      enabled: yes
+
+  - name: Place Process Config Files 
+    copy:
+      src: "{{ item }}"
+      dest: /etc/monit.d/
+      owner: root
+      group: root
+      mode: 0600
+    with_items:
+      - docker
+      - nginx
+      - qjenkins
+      - rsakey
+    notify: Monit Reload
+
+  - name: Force Handler To Run
+    meta: flush_handlers
+
+  - name: Monitor all
+    shell: monit monitor all
+
+  - name: Place Monitrc | For Web App
+    template:
+      src: monitrc_web_app.j2
+      dest: /etc/monitrc
+      owner: root
+      group: root
+      mode: 0600
+    notify: Monit Restart
+    when: monitwebapp == 'true' 
+
+

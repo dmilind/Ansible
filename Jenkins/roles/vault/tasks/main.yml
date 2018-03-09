@@ -1,0 +1,163 @@
+# Configures vault on jenkins hosts.
+# Vault binary is already placed on jenkins hosts
+# Check vault binary is in path or not
+- name: Stat vault Binary 
+  stat:
+    path: /sbin/vault
+  register: vault_in_path
+
+- debug:
+    msg: "{{ vault_in_path }}"
+
+# Put vault binary to path if not placed already
+- name: Copy Vault Binary to sbin
+  shell: cp -f /opt/consul-vault/vault/bin/vault /sbin/
+  when: vault_in_path.stat.exists == false
+
+# Provide data directory for vault if backend is filesystem on local hosts
+- name: Create Data Dir For Vault
+  file:
+    path: /opt/consul-vault/vault/data
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+ 
+# Provide configuration file to vault.
+- name: Provide vault config file | vault.hcl
+  template:
+    src: vault.hcl.j2
+    dest: /opt/consul-vault/vault/vault.hcl
+    owner: root
+    group: root
+    mode: 0644
+ 
+#- name: Check Value | VAULT_ADDR
+
+#  register: vault_addr_exported
+
+# Update VAULT_ADDR in bashrc file
+- name: Export VAULT_ADDR
+  shell: echo "export VAULT_ADDR=http://$(hostname):8200" >> /root/.bashrc
+  when: vault_addr_exported.rc != 0
+  ignore_errors: yes
+
+# Check vault server is running or not
+- name: Status of vault server
+  shell: vault status
+  register: vault_server_status
+  when: vault_addr_exported.rc == 0
+
+- debug:
+    msg: "{{ vault_server_status }}"
+
+# If vault server is not available then start vault server on jenkins hosts
+- name: Start Vault Server
+  shell: | 
+    vault server -config=/opt/consul-vault/vault/vault.hcl 
+  when: vault_server_status.rc != 0
+
+
+# Check Vault is already initialized or not
+- name: Check | vault init
+  shell: vault init
+  register: vault_initialized_already
+
+- debug: 
+    msg: "{{ vault_initialized_already }}" 
+
+# vault init and copy all keys to jenkins server itself 
+- name: Initialize Vault
+  shell: vault init > /opt/consul-vault/vault/vault.keys
+  when: vault_initialized_already != '0'
+  ignore_errors: yes
+
+# Export VAULT_TOKEN
+- name: Check | Token Exported
+  shell: |
+    echo $VAULT_TOKEN
+  register: token_exported
+
+- debug: 
+    msg: "{{ token_exported }}" 
+
+#- name: Export VAULT_TOKEN
+#  shell: export $VAULT_TOKEN=$(Initial Root Token' /opt/consul-vault/vault/vault_keys | awk '{print $4}') 
+#  when: token_exported != '0'
+
+# Unseal Vault
+#- name: Unseal Vault
+#  shell: |
+
+# authenticate with vault
+#- name: Authenticate Vault 
+#  shell: vault auth $VAULT_TOKEN
+
+# Enable Audit for vault
+#- name: Enable Vault Audit
+#  shell: |
+#    vault audit-enable file file_path=/opt/consul-vault/vault/vault.log
+
+# mount ssh secret to vault at ssh-client-signer path 
+#- name: Mount Vault Backend | SSH
+#  shell: |
+#    vault mount -path=s
+#    sh-client-signer ssh
+#  register: ssh_backend_mounted
+
+# configure CA and generate certificate using vault
+# If CA provided then provide those keypair else generate new from vault.
+
+# Create vault role for signing keys
+#- name: Create Vault Role | key-signer
+#  shell: |
+#    vault write ssh-client-signer/roles/sign-key -<< "EOH"
+#{
+#  "allow_user_certificates": true,
+#  "allowed_users": "*",
+#  "default_extensions": [
+#    {
+#      "permit-pty": ""
+#    }
+#  ],
+#  "key_type": "ca",
+#  "default_user": "ansible",
+#  "ttl": "720h0m0s"
+#}
+#EOH
+#    exit 0
+
+# Generating First time keys for jenkins user  
+#- name: Generate SSH Keys | For Jenkins
+#  user: 
+#    name: jenkins
+#    state: present
+#    generate_ssh_key: yes
+    
+# Ask vault to sign the keys 
+#- name: Sign Newly generated key 
+#  shell: |
+#    vault write ssh-client-signer/sign/key-signer public_key=@/home/jenkins/.ssh/id_rsa.pub 
+#    exit 0
+
+# Save Signed Key to use 
+#- name: Save Signed Key
+#  shell: |
+#    vault write -field=signed_key ssh-client-signer/sign/key-signer public_key=@/home/jenkins/.ssh/id_rsa.pub > /home/jenkins/.ssh/id_rsa-cert.pub
+#    exit 0 
+
+# Seal Vault
+#- name: Seal Vault
+#  shell: vault seal
+
+# END PB 
+
+# ----------------------------- Jenkins Jobs -----------------------------  
+# generate key for jenkins user on jenkins hosts | 
+# sign the key through vault role                | ---> This is Jenkins job which will generate jenkins user key, sign that key with vault, save signed key with id_rsa-cert.pub or other name.    
+# save the signed key as id_rsa-cert.pub         | 
+#
+# Jenkins job to add public key to all target hosts under /etc/ssh/vault-ca-keys.pem                          |
+# Update sshd_config through ansible base packages and add line TrustedUserCAKeys /etc/ssh/vault-ca-keys.pem  |  ----> Second jenkins job which will place vault-ca-keys.pem under /etc/ssh directory. Either we can update sshd_config  
+# restart sshd service                                                                                        |        through base ansible or through this jenkins job. and restart sshd service on remote hosts. 
+# 

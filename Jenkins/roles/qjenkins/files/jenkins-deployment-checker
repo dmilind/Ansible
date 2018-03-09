@@ -1,0 +1,604 @@
+#!/bin/bash
+# Qjenkins service qualys test.
+# This script checks all required services, ports, and processes are up and running. Script can be used for monitoring jenkins application. 
+# Run this script against jenkins hosts where jenkins is installed.
+# Run this script after jenkins deployed. 
+
+source /etc/init.d/functions
+HOSTNAME=$(hostname -s)
+DOMAIN=$(hostname -d)
+rc=0
+fc=1
+yellow='\033[1;33m'
+blue='\e[34m'
+nc='\e[0m'
+execute_nicely() {
+    local -r msg=$1
+    local -r cmd=$2
+    local -i rc=0
+
+    echo -n "$msg"
+    local output
+    output=$($cmd 2>&1)
+    rc=$?
+
+    if [ $rc -ne 0 ]; then
+        echo
+        echo -n "$output"
+        failure
+        echo
+    else
+        success
+        echo
+    fi
+
+    return $rc
+}
+
+start() {
+   execute_nicely \
+   "Starting jenkins" \
+   "/etc/init.d/jenkins start" \
+   || return $?
+
+    return 0
+}
+
+stop() {
+   execute_nicely \
+   "Shutting down jenkins" \
+   "/etc/init.d/jenkins stop" \
+   || return $?
+
+    return 0
+}
+
+status() {
+   local -i rc=0
+   execute_nicely \
+   "Status of jenkins" \
+   "/etc/init.d/jenkins status" 
+    if [ $? -ne $rc ]; then
+      rc=$?
+    fi 
+
+    return $rc
+}
+
+test() {
+echo
+if [[ "$HOSTNAME" = jenkins* ]]; then
+  echo    "#######################################################"
+  echo -e "#            ${blue}Performing Smoke Test${nc}                    #"
+  echo    "#######################################################"
+else
+  exit 1
+fi
+sleep 0.3
+
+# Test suit on nginx.
+echo "-------------------------------------------------------"
+echo -e "               ${blue}Inspecting Nginx${nc}                  "
+echo "-------------------------------------------------------"
+
+# Check: domain specific certs in /etc/nginx/ssl
+for VALUE in key pem  
+do
+  if [ -s /etc/nginx/ssl/"$DOMAIN.$VALUE" ]; then
+    echo -n "Provided cert file is $DOMAIN.$VALUE"
+    success
+    logger -t jenkins-init "Cert:$DOMAIN.$VALUE  test=Present" 
+    sleep 0.3
+    echo
+  else
+    echo -n "Missing cert file $DOMAIN.$VALUE"
+    failure
+    logger -t jenkins-init "Certs:$DOMAIN.$VALUE test=Absent"
+    sleep 0.3
+    echo
+    rc=$fc
+  fi
+done
+sleep 0.3
+
+# Check: nginx service status
+systemctl status nginx &> /dev/null
+if [ $? -eq 0 ]; then
+  echo -n "Nginx process is running"
+  success
+  logger -t jenkins-init "Process:nginx  test=Running"
+  sleep 0.3
+  echo
+else
+  echo -n "Nginx process is not running"
+  failure
+  logger -t jenkins-init "Process:nginx  test=Stopped"
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+sleep 0.3
+
+# check: respective ports assigned to nginx. 
+PORT_FFT=$(netstat -nlp | grep nginx | grep 443 | cut -d ":" -f2 | cut -d " " -f1)
+PORT_EZ=$(netstat -nlp | grep nginx | grep 80 | grep -m1 "" | grep 80 | cut -d ":" -f2 | cut -d " " -f1)
+NGINX_SVC=$(netstat -nlp | grep nginx | grep -m1 " " | cut -d "/" -f2 | cut -d ":" -f1)
+
+if [ "$NGINX_SVC" = "nginx" ] && [ "$PORT_FFT" -eq 443 ]; then
+  echo -n "$PORT_FFT Port assigned to nginx service"
+  success
+  logger -t jenkins "nginx-port:443  test=Assigned"
+  sleep 0.3
+  echo
+else
+  echo -n "$PORT_FFT Port is not assigned to nginx service"
+  failure
+  logger -t jenkins "nginx-port:443  test=Unassigned"
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+sleep 0.3
+if [ "$NGINX_SVC" = "nginx" ] && [ "$PORT_EZ" -eq 80 ]; then
+  echo -n "$PORT_EZ Port is assigned to nginx service"
+  success
+  logger -t jenkins "nginx-port:80  test=Assigned"
+  sleep 0.3
+  echo
+else
+  echo -n "$PORT_EZ Port is not assigned to nginx service"
+  failure
+  logger -t jenkins "nginx-port:80  test=unassigned"
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+sleep 0.3
+
+# Test Suit on jenkins.
+echo    "-------------------------------------------------------"
+echo -e "              ${blue}Inspecting Qjenkins${nc}                "
+echo    "-------------------------------------------------------"
+
+# Check installed java version
+java_version=`java -version 2>&1 | grep version  | awk '{print $NF}'`
+echo -n "Installed java version is $java_version"
+success
+sleep 0.3
+echo
+
+# Check jenkins version
+qjen_version=`rpm -q jenkins | cut -d '.' -f1-3`
+echo -n "Qjenkins is installed and version is $qjen_version"
+success
+sleep 0.3
+echo
+
+# check: jenkins config file in location.
+if [ -f /opt/jenkins/jenkins_home/config.xml ]; then
+   echo -n "Qjenkins's config.xml file is placed"
+   success
+   logger -t jenkins-init "file:Config   test=Present"
+   sleep 0.3
+   echo
+else
+   echo -n "Qjenkins's config.xml file missing" 
+   failure
+   logger -t jenkins-init "file :Config  test=Absent"
+   sleep 0.3
+   echo
+   rc=$fc
+fi
+sleep 0.3
+
+# Check: Qjenkins's version
+WAR_VERSION=$(grep "/version" /opt/jenkins/jenkins_home/config.xml | cut -d ">" -f2 | cut -d "<" -f1)
+echo -n Qjenkins war version is $WAR_VERSION
+success
+echo
+sleep 0.3 
+
+# check: defult jobs available in jobs folder
+job_dir=(/opt/jenkins/jenkins_home/jobs)
+for default_jobs in Deploy-Jobs mscicd_svc-config-sync 
+do
+  if [ -d $job_dir/$default_jobs ]; then
+    echo -n "Default job $default_jobs is present"
+    success
+    logger -t jenkins-init "job:$default_jobs  test=Present"
+    sleep 0.3
+    echo
+  else
+    echo -n "Default job $default_jobs is missing"
+    failure
+    logger -t jenkins-init "job:$default_jobs   test=Absent"
+    sleep 0.3
+    echo
+    rc=$fc
+  fi
+done
+sleep 0.3
+
+# check: directory structure is proper for jenkins
+Jhome=(/opt/jenkins/jenkins_home)
+Jinstall=(/opt/jenkins/jenkins_install)
+Jwork=(/opt/jenkins_workdir)
+for dir in $Jhome $Jinstall $Jwork
+do
+  if [ -d $dir ]; then
+    echo -n "$dir is placed correctly"
+    success
+    logger -t jenkins-init "type=$dir  test=Placed Correctly"
+    sleep 0.3
+    echo
+  else
+    echo -n "$dir is not placed properly"
+    failure
+    logger -t jenkins-init "type=$dir  test=Placed Wrongly"
+    sleep 0.3
+    echo
+    rc=$fc
+  fi
+done
+sleep 0.3
+
+# Check: Old version where jenkins_workdir is inside jenkins dir.
+if [ -d /opt/jenkins/jenkins_workdir ]; then
+  echo -n "/opt/jenkins/jenkins_workdir:From old version"
+  warning
+  logger -t jenkins-init "type=/opt/jenkins/jenkins_workdir  test=Placed Wrongly"
+  echo
+fi
+sleep 0.3
+
+# Check: jenkins service status
+systemctl status jenkins &>/dev/null
+if [ $? -eq 0 ]; then 
+  echo -n "Service jenkins is active"
+  success 
+  logger -t jenkins-init "type=service-jenkins test:Running"
+  echo
+else
+  echo -n "Service jenkins is stopped"
+  failure
+  logger -t jenkins-init "type=service-jenkins test:Stopped"
+  echo
+  rc=$fc
+fi
+sleep 0.3
+
+# Check jenkins user is in docker group
+qjen_group=`groups jenkins | awk '{print $4}'`
+if [ $qjen_group = docker ]; then
+  echo -n "Jenkins user is a part of docker group"
+  success
+  sleep 0.3
+  echo
+else
+  echo -n "Jenkins user is not a part of docker group"
+  failure
+  sleep 03.
+  echo
+  rc=$fc
+fi
+
+# check ssh key generated or not
+for VALUE in id_rsa id_rsa.pub
+do
+  if [ -s /home/jenkins/.ssh/$VALUE ]; then
+    echo -n "Available key is $VALUE"
+    success
+    logger -t jenkins-init "$VALUE  test=Present"
+    sleep 0.3
+    echo
+  else
+    echo -n "Missing key is $VALUE"
+    failure
+    logger -t jenkins-init "$DOMAIN.$VALUE test=Absent"
+    sleep 0.3
+    echo
+    rc=$fc
+  fi
+done
+sleep 0.3
+
+# Test suit on ansible
+echo    "-------------------------------------------------------"
+echo -e "              ${blue}Inspecting Ansible${nc}                 "
+echo    "-------------------------------------------------------"
+
+# check: ansible user is present
+user=$(getent passwd ansible | cut -d ":" -f1)
+if [ $user = ansible ]; then
+  echo -n "Ansible user exists"
+  success
+  logger -t jenkins-init "user:Ansible   test=Present"
+  sleep 0.3
+  echo
+# check: user id for ansible.
+  user_id=$(id ansible | cut -d "=" -f2 | cut -d "(" -f1)
+  if [ $user_id -eq 1098 ]; then
+    echo -n "Ansible user id is 1098"
+    success
+    logger -t jenkins-init "user:Id  test=Correct"
+    sleep 0.3
+    echo
+  else
+    echo -n "Ansible user id is not appropriate"
+    failure
+    logger -t jenkins-init "user:Id test=Incorrect"
+    sleep 0.3
+    echo
+    rc=$fc
+  fi
+  sleep 0.3
+else
+  echo -n "Ansible user is missing"
+  failure
+  logger -t jenkins-init "user:Ansible   test=Absent"
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+sleep 0.3
+
+# check: ansible is installed on hosts
+ansible --version &> /dev/null
+VERSION=`ansible --version | awk '{ print $2 }' | head -c8`
+if [ $? -eq 0 ]; then
+  echo -n "Ansible is installed and version is $VERSION"
+  success
+  logger -t jenkins-init "package:Ansible  test=Installed"
+  sleep 0.3
+  echo
+else
+  echo -n "Ansible might not be installed"
+  failure
+  logger -t jenkins-init "package:Ansible  test=missing"
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+sleep 0.3
+
+# Test Suit On Docker
+echo    "-------------------------------------------------------"
+echo -e "            ${blue}Inspecting Docker${nc}                    "
+echo    "-------------------------------------------------------"
+
+# Check docker-ce
+docker_ce=`rpm -q docker-ce | cut -d '-' -f1-2`
+docker_version=`rpm -q docker-ce | cut -d '-' -f3`
+if [ $docker_ce = 'docker-ce' ]; then
+  echo -n "Docker-ce is installed and version is $docker_version"
+  success
+  sleep 0.3
+  echo
+else
+  echo -n "Docker-ce is not installed"
+  failure
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+
+# Check docker-compose
+docker_compose=`rpm -q docker-compose | cut -d '-' -f1-2`
+docker_compose_version=`rpm -q docker-compose | cut -d '-' -f3`
+if [ $docker_compose = 'docker-compose' ]; then
+  echo -n "Docker-compose is installed and version is $docker_compose_version"
+  success
+  sleep 0.3
+  echo
+else
+  echo -n "Docker-compose is not installed"
+  failure
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+
+# Check docker service running
+systemctl status docker &> /dev/null
+if [ $? -eq 0 ]; then
+  echo -n "Docker service is running"
+  success
+  logger -t jenkins-init "type=docker test:Running"
+  echo
+else
+  echo -n "Docker service is stopped"
+  failure
+  logger -t jenkins-init "type=docker test:Stopped"
+  echo
+  rc=$fc
+fi
+sleep 0.3
+
+# Test Suit on consul and vault
+echo    "-------------------------------------------------------"
+echo -e "            ${blue}Inspecting Consul & Vault${nc}            "
+echo    "-------------------------------------------------------"
+
+# Check consul installed 
+consul_version=`/opt/consul-vault/bin/consul -v | awk '{ print $NF }' | head -n 1`
+if [ -f /opt/consul-vault/bin/consul ]; then
+  echo -n "Consul is installed and version is $consul_version"
+  success
+  sleep 0.3
+  echo 
+else
+  echo "Consul is not installed"
+  failure
+  sleep 0.3
+  echo 
+  rc=$fc
+fi
+
+# check vault installed
+vault_version=`/opt/consul-vault/bin/vault -v | awk '{ print $2}'`
+if [ -f /opt/consul-vault/bin/vault ]; then
+  echo -n "Vault is installed and version is $vault_version"
+  success
+  sleep 0.3
+  echo
+else
+  echo "Vault is not installed"
+  failure
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+
+# Test Suit On Monit
+echo    "-------------------------------------------------------"
+echo -e "            ${blue}Inspecting Monit${nc}                     "
+echo    "-------------------------------------------------------"
+
+# Check monit installed
+monit=`rpm -q monit | cut -d '-' -f1`
+monit_version=`rpm -q monit | cut -d '-' -f2-3 | cut -d '.' -f1-2`
+if [ $monit = monit ]; then
+  echo -n "Monit is installed and version is $monit_version"
+  success
+  sleep 0.3
+  echo
+else
+  echo -n "Monit is not installed"
+  failure
+  sleep 0.3
+  echo 
+  rc=$fc
+fi
+
+# check checker files for monit
+for configFile in /etc/monit.d/*
+do
+  if [ -f $configFile ]; then
+    echo -n "Present process file for monit is $(basename $configFile)"
+    success
+    sleep 0.3
+    echo
+  else
+    echo -n "Missing process files for monit"
+    failure
+    sleep 0.3
+    echo
+    rc=$fc
+  fi
+done
+
+# Check monit service
+systemctl status monit &> /dev/null
+if [ $? = 0 ]; then
+  echo -n "Monit service is running"
+  success
+  sleep 0.3
+  echo
+else
+  echo -n "Monit service is not running"
+  failure
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+
+# Check monit web serving or host level.
+curl $HOSTNAME:2812 &> /dev/null
+if [ $? = 0 ]; then
+  echo -n "Monit serving web page on port 2812"
+  success
+  sleep 0.3
+  echo
+else     
+  echo -n "Monit is running on host level instead web page"
+  success
+  sleep 0.3
+  echo
+  for process in docker jenkins nginx
+  do
+    process_status=`monit status $process| grep status | awk 'NR==1 {print $2}'`
+    monitoring_status=`monit status $process| grep status | awk 'NR==2 {print $3}'`
+    if [ "$process_status" = "Running" ] && [ "$monitoring_status" = "Monitored" ]; then
+      echo -n "$process is Running and being Monitored by Monit"
+      success
+      sleep 0.3
+      echo 
+    else
+      echo -n "Something is wrong with monit! Check monit configurations"
+      failure
+      sleep 0.3
+      echo
+      rc=$fc       
+    fi
+    done
+fi
+
+# Test suit on connection
+echo    "-------------------------------------------------------"
+echo -e "            ${blue}Inspecting Connections${nc}               "
+echo    "-------------------------------------------------------" 
+echo  "####################################################################"
+printf "${yellow}NOTE: This section may take long time if host does not exist in pod.${nc}\n"
+echo  "####################################################################"
+infile="/opt/qualys/jenkins/hostfile"
+if [ -e $infile ]; then
+{ 
+  while IFS= read -r HOST
+  do
+    ping -c 1 $HOST &> /dev/null
+    if [ $? -eq 0 ]; then
+      echo -n "$HOST is reachable from jenkins"
+      success
+      logger -t jenkins-init "connection to: $HOST  test=connected"
+      sleep 0.3
+      echo
+    else
+      echo -n "$HOST is not reachable from jenkins"
+      failure
+      logger -t jenkins-init "connection to: $HOST  test=dropped"
+      sleep 0.3
+      echo
+      rc=$fc
+    fi
+  done < "$infile"
+}
+else
+  printf "${yellow}To check host's connectivity provide 'hostfile' with exact matching name with host listing in it under same location.And then execute this script again.${nc}"
+  sleep 0.3
+  echo
+  rc=$fc
+fi
+
+return $rc
+}
+
+case "$1" in
+  start)
+    start
+    exit $?
+    ;;
+  stop)
+    stop
+    exit $?
+    ;;
+  restart)
+    stop
+    sleep 2
+    start
+    exit $?
+    ;;
+  status)
+    status
+    exit $?
+    ;;
+  test)
+    test
+    exit $?
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status|test}"
+    exit $?
+esac
+return $rc
+# End
+

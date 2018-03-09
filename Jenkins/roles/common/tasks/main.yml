@@ -1,18 +1,60 @@
-# Role to install common packages
+# Install common packages and Stop all services if upgrading existing custom jenkins.
 ---
-- name: Install libselinux-python
-  yum:
-    name: libselinux-python
-    state: installed
-- name: Install JRE
-  yum:
-    name: jre
-    state:  installed
-- name: Install ansible
-  yum:
-    name: ansible
-    state: installed
-- name: Install Git
-  yum:
-    name: git
-    state: installed
+  - name: Install Packages
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - libselinux-python
+      - java
+      - ansible
+      - git
+      - jq
+      - monit
+      - unzip
+
+  - name: Alter Ansible Conf File
+    copy:
+      src: ansible.cfg
+      dest: /etc/ansible/ansible.cfg
+      owner: root
+      group: root
+      mode: 0644
+
+# Block For Upgrade      
+  - name: Check Service Status | Docker | For Upgrade | ** Ignore If Stdout is Red **
+    shell: systemctl status docker
+    ignore_errors: yes
+    changed_when: false
+    register: docker_is_up
+
+  - name: Check Service Status | Nginx | For Upgrade| ** Ignore If Stdout is Red **
+    shell: systemctl status nginx
+    ignore_errors: yes
+    changed_when: false
+    register: nginx_is_up
+
+  - name: Check Service Status | Qjenkins | For Upgrade | ** Ignore If Stdout is Red **
+    shell: systemctl status jenkins
+    ignore_errors: yes
+    changed_when: False
+    register: qjenkins_is_up
+
+  - name: Check Service Status | Monit | For Upgrade | ** Ignore If Stdout is Red **
+    shell: systemctl status monit
+    ignore_errors: yes
+    changed_when: False
+    register: monit_is_up
+
+  - name: Stop Service | For Upgrade Only
+    service:
+      name: "{{ item.name }}"
+      state: stopped
+    when: "{{ item.condition }}"
+    with_items:
+      - { name: 'docker', condition: 'docker_is_up.rc == 0' }
+      - { name: 'nginx', condition: 'nginx_is_up.rc == 0' }
+      - { name: 'qjenkins', condition: 'qjenkins_is_up.rc == 0' }
+      - { name: 'monit', condition: 'monit_is_up.rc == 0' }
+
+# End Block For Upgrade

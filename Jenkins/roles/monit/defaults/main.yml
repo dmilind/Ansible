@@ -1,0 +1,11 @@
+# Variables only for monit role
+---
+# These values are default, but for prod env override these values in docker run command.
+mailserver: < mailserver_address >
+mailserver_port: 25
+email: < email_id >
+monitwebapp: true 
+
+
+
+

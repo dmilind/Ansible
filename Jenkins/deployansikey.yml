@@ -1,0 +1,74 @@
+# This playbook will generate ssh key for jenkins user followed by placing it to other hosts for ansible user if ansible user is present to make passwordless # connection to remote host.
+---
+# Section I - Executes on Jenkins hosts only.
+  - name: Generate jenkins's key | On Jenkins Host
+    hosts: Jenkins
+    gather_facts: True
+    become: True
+    tasks:
+    - name: Generate ssh key
+      user:
+        name: jenkins
+        state: present
+        generate_ssh_key: yes
+
+    - name: Fetch New Key to Deploy   
+      fetch:
+        src: /home/jenkins/.ssh/id_rsa.pub
+        dest: /tmp/id_rsa.pub
+        validate_checksum: yes
+        fail_on_missing: yes
+        flat: yes
+    
+# Section II - Executes on all other enlisted remote hosts. 
+# Deploy key to other hosts for ansible user      
+  - name: Place Key to Podhosts
+    hosts: Podhosts
+    gather_facts: True
+    become: True
+    tasks:
+    - name: Create Ansible's SSH Dir If Not Exists
+      file:
+        path: /home/ansible/.ssh
+        state: directory
+        owner: ansible
+        mode: 0700
+
+    - name: Stat Ansible's Old Public Key
+      stat:
+        path: /home/ansible/.ssh/id_rsa.pub
+      register: old_public_key
+
+    - name: Fetch Old Key To Remove
+      fetch:
+        src: /home/ansible/.ssh/id_rsa.pub
+        dest: /tmp/id_rsa.pub.old
+        validate_checksum: yes
+        fail_on_missing: yes
+        flat: yes
+      when: old_public_key.stat.exists
+
+    - name: Remove Old Public Key
+      authorized_key:
+        user: ansible
+        state: absent
+        key: "{{ lookup('file', '/tmp/id_rsa.pub.old') }}"
+      when: old_public_key.stat.exists
+
+    - name: Copy Public RSA to Hosts
+      copy:
+        src: /tmp/id_rsa.pub
+        dest: /home/ansible/.ssh/id_rsa.pub
+        owner: ansible
+        group: ansible
+        mode: 0600
+
+    - name: Write pub key to authorized_key file
+      authorized_key:
+        user: ansible
+        state: present
+        key: "{{ lookup('file', '/tmp/id_rsa.pub') }}"
+        manage_dir: yes
+
+
+# END

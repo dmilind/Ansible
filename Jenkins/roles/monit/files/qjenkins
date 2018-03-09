@@ -1,0 +1,4 @@
+check process jenkins with pidfile /path/to/pid-file/jenkins.pid
+  start program = "/bin/systemctl start jenkins" with timeout 60 seconds
+  stop program = "/bin/systemctl stop jenkins"
+  if 5 restarts within 5 cycles then unmonitor

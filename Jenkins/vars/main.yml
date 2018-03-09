@@ -1,4 +1,0 @@
----
-fqdn: "{{ ansible_fqdn }}"
-domain: "{{ ansible_domain }}"
-hostname: "{{ ansible_hostname }}"

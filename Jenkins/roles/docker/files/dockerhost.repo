@@ -1,0 +1,6 @@
+[dockerhost]
+name=dockerhost repository
+baseurl=http://yum/repo/dockerhost
+enabled=1
+gpgcheck=0
+

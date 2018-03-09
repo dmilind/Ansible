@@ -1,21 +1,45 @@
 # Nginx role to configure nginx on host.
 ---
-- name: Install Nginx Package
-  yum:
-    name: nginx
-    state: latest
-- name: Create SSL directory 
-  file:
-    path: /etc/nginx/ssl
-    state: directory
-    mode: 0755
-- name: Copy Jenkins.conf
-  template:
-    src: jenkins.conf.j2
-    dest: /etc/nginx/conf.d/jenkins.conf
-    mode: 0644
-- name: Start nginx Service
-  service:
-    name: nginx
-    state: started
+  - name: Install Package | Nginx
+    yum:
+      name: nginx
+      state: installed
 
+  - name: Create SSL directory 
+    file:
+      path: /etc/nginx/ssl
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+
+  - name: Certs Availability | key
+    stat:
+      path: /etc/nginx/ssl/{{ ansible_domain }}.key
+    register: key
+
+  - name: Certs Availability | pem
+    stat:
+      path: /etc/nginx/ssl/{{ ansible_domain }}.pem
+    register: pem
+
+  - name: Copy Certs | domain.key|domain.pem
+    shell: cp /tmp/{{ ansible_domain }}.{{ item }} /etc/nginx/ssl/
+    with_items:
+      - key 
+      - pem 
+    when: (key.stat.exists == False) and (pem.stat.exists == False)
+    notify: Reload nginx
+
+  - name: Copy Jenkins.conf
+    template:
+      src: jenkins.conf.j2
+      dest: /etc/nginx/conf.d/jenkins.conf
+      mode: 0644
+    notify: Restart nginx
+
+  - name: Start Service | Nginx
+    service:
+      name: nginx
+      state: started
+      enabled: yes

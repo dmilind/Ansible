@@ -1,0 +1,8 @@
+# Handler for monit role
+  - name: Monit Reload
+    shell: monit reload 
+
+  - name: Monit Restart
+    service:
+      name: monit
+      state: restarted

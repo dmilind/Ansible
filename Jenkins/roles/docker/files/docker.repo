@@ -1,6 +1,0 @@
-[docker]
-name=docker repository
-baseurl=http:/path/dockerhost
-enabled=1
-gpgcheck=0
-

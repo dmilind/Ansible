@@ -1,0 +1,34 @@
+# Perform smoke testing
+---
+  - name: Do Read
+    debug:
+      msg: 
+        - "**************** WANT TO RUN TEST SUITS ? BE PATIENT AND LET THIS COMPLETE *******************"
+        - "##############################################################################################"
+        - "##         THIS PLAY CURRENTELY EXECUTING TEST SUIT SCRIPT ON REMOTE JENKINS HOST           ##"
+        - "##         IF SUCCESS PLAY IS EXECUTED IT MEANS QJENKINS DEPLOYMENT IS SUCCESSFULL          ##"
+        - "##         IF FAILURE PLAY IS EXECUTED IT MEANS ONE/MORE TEST(S) GOT FAILED                 ##"
+        - "##         TO DO: ON FAILURE PLAY: EXECUTE SAME SCRIPT ON JENKINS HOST FOR MORE VERBOSITY   ##"
+        - "##############################################################################################"
+
+  - name: Execute Script | qjenkins-deployment-checker  
+    shell: /bin/bash /opt/jenkins/jenkins-deployment-checker test > /opt/jenkins/jenkins.log
+    ignore_errors: yes
+    register: jenkins_smoke_test
+
+  - name: Deployment Status | Success 
+    debug:
+      msg: "YaY ! ALL CHECKS PASSED & JENKINS GOT DEPLOYED SUCCESSFULLY :)"
+    when: jenkins_smoke_test.rc == 0
+
+  - name: Deployment Status | Failure 
+    debug: 
+      msg: "Oops ! SOMETHING WENT WRONG,EXECUTE SAME SCRIPT ON JENKINS HOST TO FIND MORE:("
+    when: jenkins_smoke_test.rc != 0
+
+  - name: Cleaning Log From Script Execution
+    file: 
+      path: /opt/jenkins/jenkins.log
+      state: absent
+
+

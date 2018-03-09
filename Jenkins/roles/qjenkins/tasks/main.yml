@@ -1,0 +1,68 @@
+# Role to deploy qjenkins
+---
+  - name: Copy jenkins.repo
+    copy:
+      src: jenkins.repo
+      dest: /etc/yum.repos.d/
+
+# Do not use this if you dont have jenkins rpm on yum repo.
+  - name: Install jenkins
+    yum:
+      name: jenkins-{{ jenkins_rpm }}
+      state: present
+
+  - name: Render config File | POD
+    template:
+      src: config.xml_pod.j2
+      dest: /path/to/jenkins_home/config.xml
+      mode: 0644
+      owner: jenkins
+      group: jenkins
+    when: ispod|bool
+
+  - name: Copy File | Jenkins URL xml
+    template:
+      src: jenkins.model.JenkinsLocationConfiguration.xml.j2
+      dest: /path/to/jenkins_home/jenkins.model.JenkinsLocationConfiguration.xml
+      mode: 0644
+      owner: jenkins
+      group: jenkins
+
+  - name: Copy File | hudson.tasks.Mailer.xml
+    copy:
+      src: hudson.tasks.Mailer.xml
+      dest: /path/to/jenkins_home
+      mode: 0644
+      owner: jenkins
+      group: jenkins
+
+  - name: Place Test Suits Script
+    copy:
+      src: jenkins-deployment-checker
+      dest: /opt/jenkins
+      owner: root
+      group: root
+      mode: 0755
+
+  - name: Add Jenkins User to Docker Group
+    user:
+      name: jenkins
+      createhome: yes
+      shell: /bin/bash
+      groups: docker
+      append: yes
+    notify: Restart Docker
+
+  - name: Set Cron For Encrypting Private Key
+    cron:
+      name: "Encrypt Private Key"
+      minute: "1"
+      user: jenkins
+      job: "/bin/ansible-vault encrypt /home/jenkins/.ssh/id_rsa"
+
+  - name: Enable Service | jenkins
+    service:
+      name: jenkins
+      state: started
+      enabled: yes
+

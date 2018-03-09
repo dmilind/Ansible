@@ -1,0 +1,5 @@
+[qjenkins]
+name=jenkins Repo
+baseurl=http://yum_repo/qjenkins
+enabled=1
+gpgcheck=0

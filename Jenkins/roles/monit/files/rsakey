@@ -1,0 +1,5 @@
+check file id_rsa with path /home/jenkins/.ssh/id_rsa
+  if match "^-----BEGIN RSA PRIVATE KEY-----" then exec "/sbin/runuser -l jenkins -c '/bin/ansible-vault encrypt /home/jenkins/.ssh/id_rsa'"
+  if failed permission 0600 then exec "/bin/chmod 0600 /home/jenkins/.ssh/id_rsa"
+  if failed uid "jenkins" then exec "/bin/chown jenkins:jenkins /home/jenkins/.ssh/id_rsa"
+  every 4 cycles

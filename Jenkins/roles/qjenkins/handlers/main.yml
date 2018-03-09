@@ -1,0 +1,16 @@
+---
+  - name: Restart nginx
+    service:
+      name: nginx
+      state: restarted
+
+  - name: Restart qjenkins
+    service:
+      name: qjenkins
+      state: restarted
+
+  - name: Restart Docker
+    service:
+      name: docker
+      state: restarted
+

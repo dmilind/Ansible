@@ -1,23 +1,29 @@
-# Role to install docker
+# Install docker and it's component. 
 ---
-- name: Copy docker.repo
-  copy:
-    src: docker.repo
-    dest: /etc/yum.repos.d/
-- name: Uninstall older version of docker
-  yum: 
-    name: "{{ item }}" 
-    state: absent
-  with_items:
-    - docker
-    - docker-client
-    - docker-common
-- name: Install Docker Package
-  yum:
-    name: docker-ce
-    state: latest
-- name: Install docker-compose Package using wget
-  get_url:
-    url: http:/path/docker-compose-1.11.2
-    dest: /usr/local/bin/docker-compose
-    mode: 0755
+  - name: Copy dockerhost.repo
+    copy:
+      src: dockerhost.repo
+      dest: /etc/yum.repos.d/
+
+  - name: Uninstall older version of docker
+    yum: 
+      name: "{{ item }}" 
+      state: absent
+    with_items:
+      - docker
+      - docker-client
+      - docker-common
+
+  - name: Install Package | Docker
+    yum:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - docker-ce
+      - docker-compose
+
+  - name: Start Service | Docker
+    service:
+      name: docker
+      state: started
+      enabled: yes
