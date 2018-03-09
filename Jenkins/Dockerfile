@@ -1,5 +1,5 @@
 FROM alpine:3.6
-LABEL maintainer="Milind Dhoke <mdhoke@qualys.com>"
+LABEL maintainer="Milind Dhoke"
 
 RUN apk --update add python py-pip ca-certificates python-dev libffi-dev openssl-dev build-base  && \
     pip install 'ansible==2.4.2.0'     && \
