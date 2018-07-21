@@ -1,0 +1,61 @@
+---
+- name: Install Epel Repo
+  yum:
+    name: {{ epel_repo_url }}
+    state: installed 
+
+- name: Install syslog-ng
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - syslog-ng
+
+- name: Update File | syslog-ng.conf
+  copy:
+    src: syslog-ng.conf
+    dest: /etc/syslog-ng/syslog-ng.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Update File | /etc/logrotate.d/syslog-ng
+  copy:
+    src: logrotate-syslog-ng
+    dest: /etc/logrotate.d/syslog-ng
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Remove File | /etc/logrotate.d/syslog
+  file:
+    path: /etc/logrotate.d/syslog
+    state: absent
+
+- name: Create Dir | /usr/local/bin
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /usr/local/bin
+    - /etc/cron.d
+
+- name: Add File | compress_logs.sh
+  copy:
+    src: compress_logs.sh
+    dest: /usr/local/bin/compress_logs
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Set Cron For compress_logs
+  copy:
+    src: cronfile
+    dest: /etc/cron.d/compressLogs.cron
+    owner: root
+    group: root
+    mode: 0640
+
+- name: Yum Clean
+  shell: |
+    yum clean all 

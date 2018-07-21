@@ -1,0 +1,4 @@
+# ** File managed by Ansible **
+#
+# compress the logs in /var/log/HOSTS
+00 02 * * * root /usr/local/bin/compress_logs.sh > /tmp/compressLogs_cron.log 2>&1

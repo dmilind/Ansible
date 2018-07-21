@@ -1,0 +1,9 @@
+---
+- name: Provisioning Docker Image With Logging Utility
+  hosts: all
+  become: True
+  gather_facts: True
+  vars_files:
+    - group_vars/all.yaml
+  roles:
+    - syslog
