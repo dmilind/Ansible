@@ -1,0 +1,25 @@
+#
+# LDAP Defaults
+#
+
+# See ldap.conf(5) for details
+# This file should be world readable but not world writable.
+
+#BASE   dc=example,dc=com
+#URI    ldap://ldap.example.com ldap://ldap-master.example.com:666
+
+#SIZELIMIT      12
+#TIMELIMIT      15
+#DEREF          never
+
+URI ldaps://ds01.{{ ansible_domain }}/ ldaps://ds02.{{ ansible_domain }}/    
+BASE dc=corp,dc=noname,dc=com
+sudoers_base ou=SUDOers,dc=corp,dc=noname,dc=com
+#sudoers_debug 1
+
+# both of these lines are needed to support multiple versions of sudo
+TLS_CACERTFILE /etc/openldap/cacerts/ops_bundle.pem
+TLS_CACERT /etc/openldap/cacerts/ops_bundle.pem
+
+REFERRALS no
+BIND_TIMELIMIT 2

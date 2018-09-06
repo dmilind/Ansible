@@ -1,0 +1,12 @@
+# Handlers For Role ldap
+---
+- name: Start sssd
+  service: 
+    name: sssd
+    state: started
+    enabled: yes
+
+- name: Restart sssd
+  service:
+    name: sssd
+    state: restarted

@@ -1,0 +1,35 @@
+[sssd]
+config_file_version = 2
+services = nss, pam
+
+# SSSD will not start if you do not configure any domains.
+# Add new domain configurations as [domain/<NAME>] sections, and
+# then add the list of domains (in the order you want them to be
+# queried) to the "domains" attribute below and uncomment it.
+# domains = LDAP
+domains = {{ sssd_domains }}
+
+[nss]
+filter_users = root,www,wwwadm,postfix,oracle,nobody,dist,hostmon,sshd,reposync,tomcat,audit
+filter_groups = root,www,wwwadm,postfix,oracle,nobody,dist,hostmon,sshd,reposync,tomcat,audit
+
+
+[pam]
+[domain/default]
+ldap_tls_reqcert = allow
+ldap_tls_cacert = /etc/openldap/cacerts/ops_bundle.pem
+ldap_uri = ldaps://ds01.{{ ansible_domain }}/,ldaps://ds02.{{ ansible_domain }}/
+ldap_search_base = dc=corp,dc=noname,dc=com
+ldap_id_use_start_tls = False
+ldap_tls_cacertdir = /etc/openldap/cacerts
+ldap_network_timeout = 3
+ldap_group_member = memberUid
+ldap_referrals = false
+auth_provider = ldap
+id_provider = ldap
+min_id = 3000
+max_id = 9999
+entry_cache_timeout = 600
+chpass_provider = ldap
+cache_credentials = true
+#debug_level = 3

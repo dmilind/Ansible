@@ -1,0 +1,37 @@
+# Ansible role for syslog-ng
+---
+# Set Facts Based On OS
+- name: Unix Source
+  set_fact:
+    unix_source: 'dgram'
+  when: ansible_distribution_major_version == '7'
+
+- name: Unix Source
+  set_fact:
+    unix_source: 'stream'
+  when: ansible_distribution_major_version != '7'
+
+- name: Install Package | syslog-ng
+  package:
+    name: syslog-ng
+    state: latest
+
+- name: Remove Package | sysklogd
+  package:
+    name: sysklogd
+    state: absent
+
+- name: Placing File | syslog-ng.conf 
+  template:
+    src: syslog-ng.conf.j2
+    dest: /etc/syslog-ng/syslog-ng.conf
+    owner: root
+    group: root
+    mode: 0640
+  notify: Restart syslog-ng
+
+- name: Start Service | syslog-ng
+  service:
+    name: syslog-ng
+    enabled: yes
+    state: started

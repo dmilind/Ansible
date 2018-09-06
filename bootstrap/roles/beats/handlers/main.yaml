@@ -1,0 +1,11 @@
+---
+- name: Restart Filebeat
+  service:
+    name: filebeat
+    state: restarted
+
+- name: Restart Metricbeat
+  service:
+    name: metricbeat
+    state: restarted
+    

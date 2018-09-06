@@ -1,0 +1,42 @@
+# Ansible role sshd
+---
+- name: SSH Conf file | Default
+  template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: 0600
+  notify: Restart sshd
+
+- name: Place key-file | ca.pub
+  copy:
+    src: ca.pub
+    dest: /etc/ssh/ca.pub
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart sshd
+
+- name: sshd file for centos 6
+  copy:
+    src: sshd.pam.el6
+    dest: /etc/pam.d/sshd
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution_major_version == '6'
+
+- name: Insert line | pam_mkhomedir.so
+  lineinfile:
+    path: /etc/pam.d/sshd
+    regexp: '^password'
+    insertafter: '^password'
+    line: 'session    required     pam_mkhomedir.so'
+
+- name : Start Service | sshd
+  service:
+    name: sshd
+    state: started
+
+# END

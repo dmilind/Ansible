@@ -1,0 +1,18 @@
+{
+    "datacenter": "{{ CONSUL_DATACENTER }}",
+    "log_level": "{{ CONSUL_LOG_LEVEL }}",
+    "data_dir": "{{ CONSUL_DATA_DIR }}",
+    "server": {{ CONSUL_SERVER_FLAG }},
+    "advertise_addr": "{{ ansible_default_ipv4.address }}",
+    "client_addr": "0.0.0.0",
+    "disable_update_check": true,
+    "ports": {
+        "http": {{ CONSUL_HTTP_PORT }},
+        "dns": {{ CONSUL_DNS_PORT }},
+        "serf_lan": {{ CONSUL_SERF_LAN_PORT }},
+        "serf_wan": {{ CONSUL_SERF_WAN_PORT }}
+    },
+    "ui": {{ CONSUL_UI_FLAG }},
+    "encrypt": "{{ CONSUL_KEY }}",
+    "retry_join": [ "{{ CONSUL_SERVERS[0] }}","{{ CONSUL_SERVERS[1] }}","{{ CONSUL_SERVERS[2] }}" ]
+}

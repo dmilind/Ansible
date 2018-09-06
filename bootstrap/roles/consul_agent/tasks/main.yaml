@@ -1,0 +1,47 @@
+# Consul Role To Configure Consul Agent On All hosts
+---
+- name: Install Consul
+  block:
+    - name: Install Consul
+      yum:
+        name: "{{ CONSUL_VERSION }}"
+        state: present
+
+
+    - name: Set Path To Consul
+      shell: cp -f /opt/"{{ CONSUL_VERSION }}"/bin/consul /usr/bin/
+
+
+    - name: Create Directory For Consul Conf
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0755
+      with_items:
+        - /etc/consul.d
+
+    - name: Provide Config File
+      template:
+        src: consul_client.json.j2
+        dest: /etc/consul.d/consul_client.json
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Place Systemd Unit File | Consul
+      copy:
+        src: consul
+        dest: /etc/init.d/
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: Reload Systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Initiate Consul Agent | Client Mode
+      service:
+        name: consul
+        state: started
+  when: ansible_hostname | match('(?!^qconsul[0-9]{2})')

@@ -1,0 +1,17 @@
+# Ansible role for bash_prompt responsible to provide bashrc and history_timestamps files on remote hosts.
+---
+- name: Placing file | bashrc 
+  template:
+    src: bashrc.j2
+    dest: /etc/bashrc
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Placing file | history_timestamps
+  copy:
+    src: history_timestamps.sh
+    dest: /etc/profile.d/
+    owner: root
+    group: root
+    mode: 0644

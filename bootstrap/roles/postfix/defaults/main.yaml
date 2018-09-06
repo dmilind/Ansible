@@ -1,0 +1,4 @@
+---
+postfix_local_networks:
+  - '10.44.0.0/16'
+smtp_relay_host: '10.44.25.31'

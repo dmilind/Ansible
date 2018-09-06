@@ -1,0 +1,4 @@
+---
+ntp_servers:
+  - "svc01.{{ ansible_domain.split('.')[1] }}.{{ ansible_domain.split('.')[2] }}.{{ ansible_domain.split('.')[3] }}.{{ ansible_domain.split('.')[4] }}"  
+  - '10.44.25.21'

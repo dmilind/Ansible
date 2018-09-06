@@ -1,0 +1,26 @@
+# Ansible role for ntp
+---
+- name: Placing file | ntpdate cron 
+  template:
+    src: ntpdate.j2
+    dest: /etc/cron.d/ntpdate
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Placing file | ntp.conf 
+  template:
+    src: ntp.conf.j2
+    dest: /etc/ntp.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Stop Service | ntpd
+  service:
+    name: ntpd
+    enabled: no
+    state: stopped
+  when:
+    - ansible_distribution == "CentOS"
+    - ansible_distribution_major_version == "6"

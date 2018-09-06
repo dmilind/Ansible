@@ -1,0 +1,37 @@
+---
+yum_repos:
+  cent6:
+    ver: "6.9"
+    pkgs_loc: "{{ master_nameserver }}"
+    gpgcheck: 1
+  cent7:
+    ver: "{{ cent7_ver }}"
+    pkgs_loc: "{{ master_nameserver }}"
+    gpgcheck: 0
+  oel7:
+    ver: "7"
+    pkgs_loc: "{{ master_nameserver }}"
+    gpgcheck: 1
+  common:
+    pkgs_loc: "{{ master_nameserver }}"
+    gpgcheck: 0
+
+cent7_repo_types:
+  Base:
+    location: os
+  Extras:
+    location: extras
+  Updates:
+    location: updates
+
+cent6_repo_types:
+  Base:
+    location: os
+  Updates:
+    location: updates
+
+oel7_repo_types:
+  Base:
+    location: os
+  Updates:
+    location: updates

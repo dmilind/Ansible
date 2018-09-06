@@ -1,0 +1,40 @@
+# Ansible role for configuring beats for logstash.
+---
+- name: Remove Package | noname-elk-configs
+  yum:
+    name: noname-elk-configs
+    state: absent
+
+- name: Install Packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - filebeat
+    - metricbeat
+
+- name: Update yaml For Beats
+  template:
+    src: "{{ item.src }}"
+    dest: /etc/filebeat/{{ item.dest }}
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  with_items:
+    - { src: 'filebeat.yml.j2', dest: 'filebeat.yml' }
+    - { src: 'metricbeat.yml.j2', dest: 'metricbeat.yml'}
+  notify:
+    - Restart Filebeat
+    - Restart Metricbeat
+
+- name: Start Service
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items:
+    - filebeat
+    - metricbeat
+
+# END

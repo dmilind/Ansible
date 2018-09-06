@@ -1,0 +1,4 @@
+# All variables required by snmp role
+---
+snmp_rocomstr: PT18Wvpgu4ib
+snmp_mgmthost: "netmon01.mon.{{ ansible_domain.split('.')[1:] | join('.') }}"

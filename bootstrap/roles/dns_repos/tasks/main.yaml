@@ -1,0 +1,87 @@
+# Ansible role for handling Yum repos On Dns Host only
+---
+- block:
+  - name: Remove Existing Repo Files
+    shell: rm -f /etc/yum.repos.d/*
+    
+  - name: Add Repos | Common, ELK
+    yum_repository:
+      name: noname-{{ item.name }}
+      description: "{{ item.descr }}"
+      baseurl: "http://{{ yum_repos.common.pkgs_loc }}/noname/{{ item.name }}/"
+      exclude: "*cos*"
+      enabled: yes
+      gpgcheck: "{{ yum_repos.common.gpgcheck }}"
+      gpgkey: "file:///etc/pki/rpm-gpg/RPM-GPG-KEY-OPS"
+    with_items:
+      - { name: 'common', descr: 'Qualys Common Repo' }
+      - { name: 'elk', descr: 'Qualys ELK Repo' }
+
+# Task for distribution type 'CentOS'
+  - name: Tasks for 'CentOS' hosts
+    block:
+      - name: Tasks for CentOS 7 hosts
+        block:
+          - name: Yum Repo | For CentOS-7
+            yum_repository:
+              name: CentOS-{{ item.key }}
+              description: CentOS {{ item.key }} Repo
+              baseurl: "http://{{ yum_repos.cent7.pkgs_loc }}/mirror/centos/{{ yum_repos.cent7.ver }}/{{ item.value.location }}/$basearch/"
+              enabled: yes
+              gpgcheck: "{{ yum_repos.cent7.gpgcheck }}"
+            with_dict: "{{ cent7_repo_types }}"
+
+          - name: Yum Repo | For EPEL-7
+            yum_repository:
+              name: EPEL
+              description: EPEL {{ ansible_distribution_major_version }} Repo
+              baseurl: "http://{{ yum_repos.cent7.pkgs_loc }}/mirror/EPEL/{{ ansible_distribution_major_version }}/$basearch/"
+              enabled: yes
+              gpgcheck: "{{ yum_repos.cent7.gpgcheck }}"
+        when: ansible_distribution_major_version == "7"
+      # End CentOS 7 block
+      - name: Tasks for CentOS 6 hosts
+        block:
+          - name: Yum Repo | For CentOS-6
+            yum_repository:
+              name: CentOS-{{ item.key }}
+              description: CentOS {{ item.key }} Repo
+              baseurl: "http://{{ yum_repos.cent6.pkgs_loc }}/mirror/centos/{{ yum_repos.cent6.ver }}/{{ item.value.location }}/$basearch/"
+              enabled: yes
+              gpgcheck: "{{ yum_repos.cent6.gpgcheck }}"
+            with_dict: "{{ cent6_repo_types }}"
+
+          - name: Yum Repo | For EPEL-6
+            yum_repository:
+              name: EPEL
+              description: EPEL {{ ansible_distribution_major_version }} Repo
+              baseurl: "http://{{ yum_repos.cent6.pkgs_loc }}/mirror/EPEL/{{ ansible_distribution_major_version }}/$basearch/"
+              enabled: yes
+              gpgcheck: "{{ yum_repos.cent6.gpgcheck }}"
+        when: ansible_distribution_major_version == "6"
+      # End CentOS 6 block
+    when: ansible_distribution == 'CentOS'
+  # End CentOS block
+
+# Task for distribution type 'OracleLinux'
+  - name: Tasks for 'OracleLinux' hosts
+    block:
+      - name: Yum Repo | OracleLinux| OEL
+        yum_repository:
+          name: OEL-{{ item.key }}
+          description: OEL {{ item.key }} Repo
+          baseurl: "http://{{ yum_repos.oel7.pkgs_loc }}/mirror/OEL/{{ yum_repos.oel7.ver }}/{{ item.value.location }}/$basearch/"
+          enabled: yes
+          gpgcheck: "{{ yum_repos.oel7.gpgcheck }}"
+        with_dict: "{{ oel7_repo_types }}"
+
+      - name: Yum Repo | OracleLinux| EPEL
+        yum_repository:
+          name: EPEL
+          description: EPEL {{ ansible_distribution_major_version }} Repo
+          baseurl: "http://{{ yum_repos.oel7.pkgs_loc }}/mirror/EPEL/{{ ansible_distribution_major_version }}/$basearch/"
+          enabled: yes
+          gpgcheck: "{{ yum_repos.oel7.gpgcheck }}"
+    when: ansible_distribution == 'OracleLinux'
+  when: ansible_hostname | match('^dns[0-9]{2}')
+  # End OracleLinux block

@@ -1,0 +1,17 @@
+# THIS FILE IS MAINTAINED BY ANSIBLE
+
+restrict default kod nomodify notrap nopeer noquery 
+restrict -6 default kod nomodify notrap nopeer noquery 
+
+driftfile /var/lib/ntp/ntp.drift
+{% for ntp_server in nameservers %}
+server {{ntp_server}}
+{% endfor %}
+
+restrict default ignore
+restrict 127.0.0.1
+
+server  127.127.1.0     # local clock
+fudge   127.127.1.0 stratum 5
+broadcastdelay  0.008
+logconfig =syncall +clockall

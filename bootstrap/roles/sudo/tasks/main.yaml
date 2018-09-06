@@ -1,0 +1,23 @@
+# Role to install sudo package
+---
+- name: Install sudo
+  package:
+    name: sudo
+    state: installed
+
+- name: Create Dir | sudoers.d
+  file:
+    path: /etc/sudoers.d
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy sudoers file
+  copy:
+    src: sudoers
+    dest: /etc/sudoers
+    owner: root
+    group: root
+    mode: 0440
+

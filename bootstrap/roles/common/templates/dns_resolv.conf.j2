@@ -1,0 +1,9 @@
+# THIS FILE IS MAINTAINED BY ANSIBLE
+
+search {{ ansible_domain }}
+domain {{ ansible_domain }}
+
+## individual nameservers
+{% for nameserver in dns_nameservers %}
+nameserver {{ nameserver }}
+{% endfor %}

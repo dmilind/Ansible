@@ -1,0 +1,15 @@
+# For now this is a place to put global variables
+master_nameserver: "svc01.{{ ansible_domain.split('.')[1] }}.{{ ansible_domain.split('.')[2] }}.{{ ansible_domain.split('.')[3] }}.{{ ansible_domain.split('.')[4] }}"
+nameservers:
+  - "{{ lookup('dig', 'dns01.{{ ansible_domain }}', '@{{ master_nameserver }}') }}"
+  - "{{ lookup('dig', 'svc01.{{ ansible_domain }}', '@{{ master_nameserver }}') }}" # Will be removed in future for new pod automation
+  - "{{ lookup('dig', 'svc05.{{ ansible_domain }}', '@{{ master_nameserver }}') }}" # Will be removed in future for new pod automation
+
+install_splunk: true
+use_ldap: true
+pod_string: "{{ ansible_domain.split('.')[1] }}_{{ ansible_domain.split('.')[2] }}_{{ ansible_domain.split('.')[0] }}"
+cent7_ver: 7.4.1708
+
+# Below parameter will be used in dns01 host only.
+dns_nameservers:
+  - "{{ lookup('dig', '{{ master_nameserver }}') }}"

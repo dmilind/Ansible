@@ -1,0 +1,25 @@
+# Ansible role for splunk
+---
+- name: Install Splunk Only If Variable Set To True
+  block:
+    - name: Install Package | Splunkforwarder
+      package:
+        name: splunkforwarder
+        state: latest
+      when: ansible_hostname | match('(?!^(log|sim|ssh)[0-9]{2})')
+    
+    - name: Start Splunkforwarder
+      shell: "/opt/splunkforwarder/bin/splunk --accept-license --answer-yes enable boot-start"
+      when: ansible_hostname | match('(?!^(log|sim|ssh)[0-9]{2})')
+
+    - name: Install Package | noname-splunk-configs
+      package:
+        name: noname-splunk-configs
+        state: latest
+    
+    - name: Start Service | splunk
+      service:
+        name: splunk
+        enabled: yes
+        state: started
+  when: install_splunk == true 

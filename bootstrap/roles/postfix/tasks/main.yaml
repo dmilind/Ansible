@@ -1,0 +1,21 @@
+# Ansible role for ntp
+---
+- name: Install Package | postfix
+  package:
+    name: postfix
+    state: present
+
+- name: Placing File | main.cf 
+  template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart postfix
+
+- name: Start Service | postfix 
+  service:
+    name: postfix
+    enabled: yes
+    state: started

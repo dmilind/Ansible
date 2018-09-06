@@ -1,0 +1,138 @@
+# Playbook to install common packages
+# Ping dns01 host
+- name: Check Existance of DNS host
+  local_action: command ping -c2 dns01.{{ ansible_domain }}
+  register: dns_host_exists
+  ignore_errors: true
+
+- name: Placing file | resolv.conf | Where dns01 Exists
+  template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: 0644
+  when:
+    - ansible_hostname | match('(?!^(dns)[0-9]{2})')
+    - dns_host_exists.rc == 0
+
+- name: Placing File | resolv.conf | Where dns01 Does Not Exist
+  template:
+    src: old_resolv.conf.j2
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: 0644
+  when:
+    - dns_host_exists.rc != 0
+
+- name: Placing file | resolv.conf | For dns01 Only
+  template:
+    src: dns_resolv.conf.j2
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_hostname | match('(^(dns)[0-9]{2})')
+
+- name: Change line from file | /etc/yum.conf
+  lineinfile:
+    path: /etc/yum.conf
+    regexp: 'exclude.*'
+    state: absent
+
+- name: Clean yum
+  shell: yum clean all
+
+- name: Remove Package | custom-disk
+  package:
+    name: "custom-disk"
+    state: absent
+
+- name: Install Common Packages
+  package:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - bash
+    - yum-utils
+    - custom-disk
+    - screen
+    - audit-client
+    - audit
+
+- name: Remove Packages
+  package:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - package1
+    - package2
+
+# Adding time role contents here
+- name: Link file | /etc/localtime
+  file:
+    src: /usr/share/zoneinfo/Etc/UTC
+    dest: /etc/localtime
+    state: link
+    force: yes
+
+# Stat usb-storage.ko file
+- name: Check usb-storage.ko file status
+  stat:
+    path: /lib/modules/{{ ansible_kernel }}/kernel/drivers/usb/storage/usb-storage.ko
+  register: usb_storage_file
+
+# Disable USB
+- name: Disable USB
+  shell: "rm -f /lib/modules/$(uname -r)/kernel/drivers/usb/storage/usb-storage.ko"
+  when: usb_storage_file.stat.exists
+
+- name: Downgrade Packages
+  yum:
+    name: "{{ item }}"
+    allow_downgrade: yes
+  with_items:
+    - libxml2
+    - libxml2-python
+
+- name: Change line from file | /etc/pam.d/su
+  lineinfile:
+    path: /etc/pam.d/su
+    regexp: '.*pam_wheel.so use_uid'
+    line: 'auth            required        pam_wheel.so use_uid'
+    state: present
+
+- name: Install Package | admin-users
+  package:
+    name: admin-users
+    state: latest
+  ignore_errors: yes
+  when: use_ldap != true
+
+# Start Block - ENG Specific Tasks
+- name: ENG Specific Tasks
+  block:
+    - name: Package Install | gpgkey-qa
+      package:
+        name: gpgkey-qa
+        state: latest
+
+    - name: Create User | root
+      user:
+        name: root
+        state: present
+        createhome: yes
+        password: '$6$QP4obj5EeT7sGYW2$V29lxJE2G2o5R2eLG6a35Xz8UJ0CF.kH1hcLR4ummkYxkE/Hpfq8cK9KhS/1IydBLmX1Y6hJV6h.ew2ZZCjcT.'
+
+    - name: Populate File | 10-maxlogins.conf
+      copy:
+        dest: /etc/security/limits.d/10-maxlogins.conf
+        content: '* hard maxlogins 90'
+        owner: root
+        group: root
+        mode: 0644
+  when: ansible_domain | match('.*\.eng\..*')
+# End Block - ENG Specific Tasks
+
+# END Role

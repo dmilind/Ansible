@@ -1,0 +1,8 @@
+# THIS FILE IS MAINTAINED BY ANSIBLE
+
+search {{ ansible_domain }}
+domain {{ ansible_domain }}
+
+## individual nameservers
+nameserver  {{ nameservers[1] }}
+nameserver  {{ nameservers[2] }}

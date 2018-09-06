@@ -1,0 +1,414 @@
+###################### Filebeat Configuration Example #########################
+
+# This file is an example configuration file highlighting only the most common
+# options. The filebeat.full.yml file from the same directory contains all the
+# supported options with more comments. You can use it as a reference.
+#
+# You can find the full configuration reference here:
+# https://www.elastic.co/guide/en/beats/filebeat/index.html
+
+#=========================== Filebeat prospectors =============================
+
+filebeat.prospectors:
+
+- input_type: log
+  paths:
+    - /var/log/nagios/nagios.log
+  fields:
+    app_id: nagios
+  exclude_lines: ['Core Worker']
+  tags: ["nagios"]
+
+#CEPH
+- input_type: log
+  paths:
+    - /var/log/ceph/*
+    - /var/log/radosgw/*
+  fields:
+    app_id: ceph
+  exclude_files: ['\.gz$']
+  tags: ["ceph"]
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+#CASSANDRA
+- input_type: log
+  paths:
+    - /var/log/cassandra/system.log
+    - /var/log/cassandra/cassandra.log
+    - /var/log/cassandra/gc.log.0.current
+    - /var/log/cassandra/debug.log
+  fields:
+    app_id: cassandra
+  exclude_files: ['\.gz$']
+  tags: ["cassandra"]
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+# KAFKA
+- input_type: log
+  paths:
+    - /var/log/kafka/kafka.log
+    - /var/log/kafka/kafkaServer.out
+    - /var/log/kafka/controller.log
+    - /var/log/kafka/kafkaServer-gc.log.*.current
+    - /var/log/kafka-manager/application.log
+  fields:
+    tags: ['kafka']
+    app_id: kafka
+  tags: kafka
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+# KAFKA manager
+- input_type: log
+  paths:
+    - /var/log/kafka-manager/kafka-manager.log
+  fields:
+    app_id: kafka
+  tags: ["kafka"]
+  multiline.pattern: ^\w{3}\s\d{2},\s\d{4}\s\d{2}:\d{2}:\d{2}\s[A|P]M
+  multiline.negate: false
+  multiline.match: after
+
+# Cloudview application logs
+- input_type: log
+  paths:
+    - /var/log/cloudview*/*/application.json
+  fields:
+    app_id: cloudview
+  tags: ["swarm", "cloudview"]
+  json.keys_under_root: true
+  json.add_error_key: true
+  json.overwrite_keys: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# Cloudview UI logs
+- input_type: log
+  paths:
+    - /storage/cloudviewui/*.log
+  fields:
+    app_id: cloudviewui
+  tags: ["cloudviewui", "swarm"]
+
+  paths:
+    - /storage/qql-service/*/logs/*.log
+  fields:
+    app_id: qql-service
+  tags: ["qql-service"]
+  # multiline support to capture stack traces
+  # with the previous line with timestamp pattern
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+# Gateway service logs
+- input_type:
+  paths:
+    - /var/log/gateway-service/gateway-service.log
+    - /var/log/gateway-service/gateway-service-NetworkClient.log
+    - /var/log/gateway-service/gateway-service-gc.log.0.current
+  fields:
+    app_id: gateway
+  tags: ["gateway"]
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+# Zookeeper logs
+- input_type:
+  paths:
+     - /var/log/zookeeper.out
+     - /var/log/zookeeper/zookeeper.out
+     - /var/log/zookeeper/zookeeper.log
+  fields:
+    app_id: zookeeper
+  tags: ["zookeeper"]
+
+# Elasticsearch logs
+- input_type:
+  paths:
+    - /var/log/elasticsearch/*.log
+  fields:
+    tags: ['elasticsearch']
+    app_id: elasticsearch
+  tags: elasticsearch
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+# Redis logs
+- input_type:
+  paths:
+    - /var/log/dynomite/dynomite.log
+    - /var/log/redis/redis.log
+  fields:
+    app_id: redis
+  tags: ["redis"]
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+#BFSS
+- input_type:
+  paths:
+    - /var/log/bfss/bfss.log
+    - /var/log/bfss/bfss-requests.log
+    - /var/log/bfss/gc.log.*.current
+  fields:
+     app_id: bfss
+  tags: ["bfss"]
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+#INDEXING SERVICE
+- input_type:
+  paths:
+    - /var/log/indexing-service/indexingservice.log
+  fields:
+    app_id: indexing-service
+  tags: ["indexing-service"]
+  multiline.pattern: ^\d{4}
+  multiline.negate: true
+  multiline.match: after
+
+#QCONSUL
+- input_type:
+  paths:
+    - /var/log/git2consul/git2consul.log
+  fields:
+    tags: ['qconsul']
+    app_id: qconsul
+  tags: qconsul
+
+# Jenkins worker logs
+- input_type:
+  paths:
+    - /opt/jenkins_workdir/mscicd*/builds/*/log
+  fields:
+    app_id: jenkins
+  tags: ["jenkins_jobs"]
+
+# Jeknins server logs
+- input_type:
+  paths:
+    - /opt/jenkins/jenkins_install/logs/jenkins.log
+  fields:
+    app_id: jenkins
+  tags: ["jenkins_server"]
+
+# GOGS
+- input_type:
+  paths:
+    - /storage/gogs_home/gogs/log/gogs.log
+  fields:
+    type: 'gogs_server_log'
+    app_id: gogs
+  tags: gogs
+
+# FIM Application logging
+- input_type: log
+  paths:
+    - /storage/logs/fim*/*/application.json
+  fields:
+    app_id: fim
+  tags: ["fim", "swarm"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# FIM UI Application logging
+- input_type: log
+  paths:
+    - /storage/logs/fimui-service/*/application.json
+  fields:
+    app_id: fimui
+  tags: ["fimui", "swarm"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# IOC
+- input_type: log
+  paths:
+    - /storage/logs/ioc*/*/application.json
+    - /storage/logs/ioc*/*/archive_*.json
+  fields:
+    tags: ['ioc']
+    app_id: ioc
+  tags: ioc
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# IOC UI
+- input_type: log
+  paths:
+    - /storage/logs/iocui-service/*/application.json
+  fields:
+      app_id: iocui
+  tags: ["iocui", "swarm"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# Syslog parser
+- input_type: log
+  paths:
+    - /var/log/messages
+  tags: syslog
+
+# CMS
+- input_type: log
+  paths:
+    - /storage/cms/json/*.log
+  fields:
+    app_id: cms
+  tags: ["cms", "swarm"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+#ITAM
+- input_type: log
+  paths:
+    - /storage/logs/itam*/*/*.json
+  fields:
+    app_id: itam
+  tags: ["itam", "swarm"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+
+# Certview
+- input_type: log
+  paths:
+    - /storage/logs/cv*/*/*.json
+  fields:
+    app_id: certview
+  tags: ["certview", "swarm"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# Certview UI
+- input_type: log
+  paths:
+    - /storage/logs/certviewui-service/certview/*/application.json
+  fields:
+    app_id: certviewui
+  tags: ["certviewui", "swarm"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+
+# NAC
+- input_type: log
+  paths:
+    - /var/log/nac*/*/application.json
+  fields:
+    app_id: nac
+  tags: ["nac"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# FLINK
+- input_type: log
+  paths:
+    - /storage/cloudview-qflink-service/*/application.json
+  fields:
+    app_id: qflink
+    log_topic: qflink
+  tags: ["qflink"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# ALERTS
+- input_type: log
+  paths:
+    - /storage/logs/alert*/*/application.json
+  fields:
+    app_id: alert
+  tags: ["alert"]
+  json.keys_under_root: true
+  json.add_error_keys: true
+  json.overwrite_keys: true
+  fields_under_root: true
+  ignore_older: 24h
+  clean_inactive: 30h
+
+# PCLS
+- input_type: log
+  paths:
+    - /storage/logs/patchpcls/*.log
+  fields_under_root: true
+  fields:
+    app_id: pcls
+    log_topic: pcls
+  tags: ["pcls"]
+
+# CV
+- input_type: log
+  paths:
+    - /storage/logs/cv-*/*/application.json
+    - /storage/logs/cvadmin-*/*/application.json
+  fields_under_root: true
+  fields:
+    app_id: cv
+    log_topic: cv
+  tags: ["cv"]
+
+# Patch
+- input_type: log
+  paths:
+    - /storage/logs/patch*/*/application.json
+  fields_under_root: true
+  fields:
+    app_id: patch
+    log_topic: patch
+  tags: ["patch"]
+
+#----------------------------- Logstash output --------------------------------
+output.kafka:
+  hosts: ["{{ kafka_output_hosts.host01 }}:{{ kafka_port }}", "{{ kafka_output_hosts.host02 }}:{{ kafka_port }}", "{{ kafka_output_hosts.host03 }}:{{ kafka_port }}"]
+  version: 0.10.0.0
+  partition.round_robin:
+    group_events: 1
+    reachable_only: true
+  topic: '%{[log_topic]}_logs'
+  required_acks: 1
+  max_message_bytes: 1000000
+  compression: none

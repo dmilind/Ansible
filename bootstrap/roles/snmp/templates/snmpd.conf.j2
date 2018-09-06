@@ -1,0 +1,13 @@
+rocommunity {{ snmp_rocomstr }} {{ snmp_mgmthost }}
+rocommunity {{ snmp_rocomstr }} 10.10.196.231
+rocommunity {{ snmp_rocomstr }} 10.10.185.80
+rocommunity {{ snmp_rocomstr }} 10.44.221.41
+rocommunity {{ snmp_rocomstr }} smon01.{{ ansible_domain }}
+rocommunity {{ snmp_rocomstr }} smon02.{{ ansible_domain }}
+rocommunity {{ snmp_rocomstr }} smon01.{{ ansible_domain.split('.')[1:] | join('.') }}
+rocommunity {{ snmp_rocomstr }} smon02.{{ ansible_domain.split('.')[1:] | join('.') }}
+syslocation {{ ansible_domain.split('.')[1] }}_{{ ansible_domain.split('.')[2] }}_{{ ansible_domain.split('.')[0] }}
+syscontact ops@noname.com
+includeAllDisks 10%
+
+trapcommunity {{ snmp_rocomstr }}

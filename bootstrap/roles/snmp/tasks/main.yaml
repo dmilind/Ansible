@@ -1,0 +1,48 @@
+# SNMP Ansible ROLE
+---
+- name: Install packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - tcp_wrappers
+    - net-snmp
+
+- name: Set Content in snmpd.option file
+  lineinfile:
+    path: /etc/sysconfig/snmpd.options
+    state: present
+    create: yes
+    line: 'OPTIONS="-Lsd -Lf /dev/null -p /var/run/snmpd.pid -a udp:161 tcp:161"'
+    group: root
+    owner: root
+    mode: 0644
+  notify: Restart snmpd
+
+- name: Set Content in snmpd file
+  lineinfile:
+    path: /etc/sysconfig/snmpd
+    state: present
+    create: yes
+    line: 'OPTIONS="-Lsd -Lf /dev/null -p /var/run/snmpd.pid -a udp:161 tcp:161"'
+    group: root
+    owner: root
+    mode: 0644
+  notify: Restart snmpd
+
+- name: Ensure Directory | snmp
+  file:
+    path: /etc/snmp
+    state: directory
+    owner: root
+    group: wheel
+    mode: 0750
+
+- name: Placing snmp conf file
+  template:
+    src: snmpd.conf.j2
+    dest: /etc/snmp/snmpd.conf
+    owner: root
+    group: root
+    mode: 0600
+  notify: Restart snmpd

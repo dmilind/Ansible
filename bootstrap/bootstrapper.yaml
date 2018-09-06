@@ -1,0 +1,25 @@
+## Init playbook called firstly to deploy core/base packages.
+---
+- name: Deploying Core Packages On Linux Distro Servers
+  hosts: all
+  gather_facts: True
+  strategy: free
+  become: True
+  vars_files:
+    - group_vars/vars.yaml
+  roles:                                # Do not alter the sequence of roles.
+    - { role: users, tags: ['users'] }
+    - { role: repos, tags: ['repos'] }
+    - { role: dns_repos, tags: ['dns_repos'] }
+    - { role: common, tags: ['common'] }
+    - { role: bash_prompt, tags: ['bash_prompt'] }
+    - { role: snmp, tags: ['snmp'] }
+    - { role: sudo, tags: ['sudo'] }
+    - { role: ntp, tags: ['ntp'] }
+    - { role: postfix, tags: ['postfix'] }
+    - { role: splunk, tags: ['splunk'] }
+    - { role: sshd, tags: ['sshd'] }
+    - { role: ldap, tags: ['ldap'] }
+    - { role: syslog-ng, tags: ['syslog'] }
+    - { role: beats, tags: ['beats'] }
+    - { role: consul_agent, tags: ['consul'] }

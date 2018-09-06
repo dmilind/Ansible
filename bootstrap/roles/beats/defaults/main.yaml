@@ -1,0 +1,16 @@
+# Variable for beats role
+---
+logstash_output_hosts:
+  host01: "{{ lookup('dig', 'hostname.noname.com' ) }}"
+  host02: "{{ lookup('dig', 'hostname.noname.com' ) }}"
+  host03: "{{ lookup('dig', 'hostname.noname.com' ) }}"
+  host04: "{{ lookup('dig', 'hostname.noname.com' ) }}"
+
+logstash_port: 5044
+
+kafka_output_hosts:
+  host01: "{{ lookup('dig', 'hostname.noname.com' ) }}"
+  host02: "{{ lookup('dig', 'hostname.noname.com' ) }}"
+  host03: "{{ lookup('dig', 'hostname.noname.com' ) }}"
+
+kafka_port: 50360

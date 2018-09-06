@@ -1,0 +1,52 @@
+#       $OpenBSD: sshd_config,v 1.80 2008/07/02 02:24:18 djm Exp $
+
+# This is the sshd server system-wide configuration file.  See
+# sshd_config(5) for more information.
+
+# This sshd was compiled with PATH=/usr/local/bin:/bin:/usr/bin
+
+# The strategy used for options in the default sshd_config shipped with
+# OpenSSH is to specify options with their default value where
+# possible, but leave them commented.  Uncommented options change a
+# default value.
+
+Port 22
+AddressFamily inet
+Protocol 2
+Ciphers aes256-cbc
+MACs hmac-sha1
+LoginGraceTime 1m
+SyslogFacility AUTHPRIV
+PermitRootLogin no
+PermitEmptyPasswords no
+PasswordAuthentication yes
+ChallengeResponseAuthentication no
+IgnoreRhosts yes
+#Deprecated
+#RhostsAuthentication no
+RhostsRSAAuthentication no
+HostbasedAuthentication no
+GSSAPIAuthentication no
+UsePAM yes
+X11Forwarding yes
+UseDNS no
+UsePrivilegeSeparation yes
+StrictModes yes
+PermitUserEnvironment no
+ClientAliveInterval 60
+AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
+AcceptEnv XMODIFIERS
+Subsystem sftp /usr/libexec/openssh/sftp-server -f authpriv -l info
+ClientAliveInterval 900
+ClientAliveCountMax 1
+MaxAuthTries 4
+{% if ansible_distribution_major_version == '5' %}#TrustedUserCAKeys /etc/ssh/ca.pub{% else %}TrustedUserCAKeys /etc/ssh/ca.pub{% endif %} ### FIX HERE
+LogLevel VERBOSE
+Banner /etc/security-banner
+AllowGroups wheel dist sa ansible ops_sec ops_noc ops_soc eng_sa eng_sd {{ eng_group }} monitors vmscan005 {{ ssh_group }}  
+
+
+
+

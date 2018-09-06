@@ -1,0 +1,17 @@
+# Ansible role for handling users across all node types
+---
+- name: Create Group | ansible
+  group:
+    name: ansible
+    state: present
+    gid: 1098
+
+# Creating Users
+- name: Create User | ansible
+  user: 
+    name: ansible
+    state: present
+    createhome: yes
+    uid: 1098
+    group: ansible
+

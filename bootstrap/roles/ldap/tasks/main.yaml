@@ -1,0 +1,93 @@
+# Ansible Role: LDAP
+---
+- name: Remove Package | admin-users
+  package:
+    name: admin-users
+    state: absent
+
+- name: Install Package | nss-pam-ldapd
+  package:
+    name: nss-pam-ldapd
+    state: latest
+  when:
+    - (ansible_distribution == "CentOS" or ansible_distribution == "OEL" or ansible_distribution == "OracleLinux")
+    - ansible_distribution_major_version == "6"
+
+- name: Install Packages
+  package:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - qtfa
+    - ops-ca-bundle
+    - sssd
+    - openldap
+    - authconfig
+
+- name: Copying File | sssd.conf
+  template:
+    src: sssd.conf.j2
+    dest: /etc/sssd/sssd.conf
+    owner: root
+    group: root
+    mode: 0600
+  notify: Restart sssd
+
+- name: Start Service | sssd
+  service:
+    name: sssd
+    state: started
+    enabled: yes
+
+- name: Copy File | sssd_restart.cron
+  copy:
+    src: sssd_restart.cron
+    dest: /etc/cron.d/sssd_restart.cron
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Check Authentication Policies
+  shell: |
+    grep /etc/pam.d/* -e "sss"
+  register: sss_entry_exist
+  ignore_errors: true
+
+- name: Command | Enable Authentication
+  shell: 'authconfig --enablesssd --enablesssdauth --enablelocauthorize --update'
+  notify: Restart sssd
+  when: sss_entry_exist.rc != 0
+
+- name: Copy File | ldap.conf
+  template:
+    src: ldap.conf.j2
+    dest: /etc/openldap/ldap.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: File Linking
+  file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+  with_items:
+    - { src: '/etc/openldap/ldap.conf', dest: '/etc/ldap.conf' }
+    - { src: '/etc/openldap/ldap.conf', dest: '/etc/sudo-ldap.conf' }
+
+- name: Copy File | nsswitch.conf
+  copy:
+    src: nsswitch.conf
+    dest: /etc/nsswitch.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: echo c in security-banner file
+  lineinfile:
+    path: /etc/security-banner
+    line: 'c'
+    insertafter: '^HEREIN.'
+    state: present
+
+# END
